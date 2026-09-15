@@ -13,7 +13,8 @@
 # Shirone 不认 CONTENT_REPO_TOKEN（那是 Mizuki 的做法），私有仓库要么把 token 内嵌进
 # CONTENT_REPO_URL，要么用本地目录。CONTENT_DIR 的优先级高于 CONTENT_REPO_URL，
 # 所以这里用 actions/checkout 把内容仓库取到 ./content，再让同步读取本地目录——
-# token 只存在于 checkout 步骤，不会出现在任何 URL 或日志里。
+# 凭证只出现在 checkout 步骤，不会出现在任何 URL 或日志里。
+# 认证用部署密钥 CONTENT_DEPLOY_KEY（单仓库、可只读），而不是个人 PAT。
 name: Build and Deploy
 
 on:
@@ -48,7 +49,8 @@ jobs:
         with:
           repository: lickoc/Shirone-Content
           path: content
-          token: ${{ secrets.CONTENT_REPO_TOKEN }}
+          # 用部署密钥而非 PAT：权限仅限这一个仓库，可设为只读，且不随个人令牌过期
+          ssh-key: ${{ secrets.CONTENT_DEPLOY_KEY }}
           # 不参与 clean，避免影响后续同步建立的映射
           clean: false
 
