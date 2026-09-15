@@ -66,6 +66,14 @@ jobs:
         run: |
           set -e
           export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o BatchMode=yes"
+          # 内容仓含数十 MB 相册图，跨国全量克隆要十几分钟。
+          # 本机已有常驻克隆，首次先复制过来，之后 fetch 就只需取增量。
+          seed=/home/ubuntu/shirone-content
+          if [ -d "$seed/.git" ] && [ ! -d content/.git ]; then
+            rm -rf content
+            cp -a "$seed" content
+            echo "已从本机克隆预置内容仓"
+          fi
           if [ -d content/.git ]; then
             git -C content fetch --prune --depth 1 origin main
             git -C content reset --hard FETCH_HEAD
