@@ -1,5 +1,15 @@
+<!-- 页脚自定义 HTML：备案信息与隐私政策 -->
+<!-- 备案号必须保留并链接至工信部备案系统，这是备案核查项 -->
 <!--
-  在这里添加自定义的页脚 HTML 内容（例如 ICP 备案号、公安备案图标与链接、自定义声明等）。
-  需要在 src/config/footerConfig.ts 中保持 enable: true；
-  内容将注入在页脚版权信息上方；若文件留空或仅保留注释，则不会产生任何额外的 DOM 结构。
+  图标样式说明：
+  .link 类自带 p-1 -m-1（padding 4px + margin -4px），会把链接的绘制区域向外扩张 4px，
+  且 .link 带 position:relative / z-index:0 形成层叠上下文，
+  导致右侧链接的 hover 背景压住图标右边缘。
+  故给图标加 position:relative; z-index:1 抬升层级，并留 2px 水平内边距做视觉缓冲。
 -->
+<a class="transition link text-[var(--primary)] font-medium" href="/privacy/">隐私政策</a>
+|
+<a class="transition link text-[var(--primary)] font-medium" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">鄂ICP备2026047104号-1</a>
+|
+<img src="/beian-icon.png" alt="备案图标" style="display:inline-block;height:14px;vertical-align:middle;position:relative;z-index:1;padding:0 2px" />
+<a class="transition link text-[var(--primary)] font-medium" href="https://beian.mps.gov.cn/#/query/webSearch?code=42900402000910" rel="noreferrer" target="_blank">鄂公网安备42900402000910号</a>
