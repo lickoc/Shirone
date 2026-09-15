@@ -1,26 +1,35 @@
-# About Shirone
+# 关于我
 
-Welcome to the demo site of **Shirone** (白音) — an expressive, anime-inspired blog theme built on the **Material 3 Expressive (M3E)** design system.
+> What I cannot create, I do not understand.
 
-::github{repo="LyraVoid/Shirone"}
+**兴趣方向：**
 
-## ✦ Design & Philosophy
+- **系统编程** — C++ / Rust
+- **模拟器与底层架构** — CPU 指令、内存映射
+- **开发工具** — Emacs 用户
+- **AI Agent** — Agent 编排、工具调用、上下文工程
 
-Shirone aims to combine the warmth of expressive anime aesthetics with the rigor of modern web engineering:
+## 这个站点
 
-- **Dynamic Chromatic Spell**: Full dynamic HCT palette generation responding seamlessly to light/dark modes and user preferences with zero layout shifts.
-- **Seamless Shell Navigation**: Persistent application shell driven by Swup for continuous music playback, smooth page transitions, and preserved state.
-- **Rich Story Grimoire**: Markdown and MDX authoring with KaTeX math, Mermaid diagrams, interactive admonitions, expressive code blocks, and adaptive image galleries.
-- **Zero Extra Burden**: Optional integrations (comments, analytics, music widgets) load dynamically on demand — zero DOM footprint and zero bundle overhead when disabled.
+「随风录」是我的个人博客，记录生活、学习与思考，分享我感兴趣的二次元作品与技术笔记。
 
-## ✦ Tech Stack
+- 站点地址：[https://lickoc.site](https://lickoc.site)
+- 建站日期：2026-08-31
 
-- **Framework**: [Astro 7](https://astro.build/) & [Svelte 5](https://svelte.dev/) (Runes-driven islands)
-- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/) & [Stylus](https://stylus-lang.com/)
-- **Design Standard**: [Material 3 Expressive](https://m3.material.io/)
-- **Typography**: Outfit & Yozai (悠哉圆体) with automated build-time subsetting
-- **Search Engine**: [Pagefind](https://pagefind.app/) offline full-text search
+## 技术栈
 
-## ✦ Credits
+本博客基于 [Mizuki](https://github.com/LyraVoid/Mizuki) 主题构建，使用 Astro + Svelte 开发，部署在腾讯云服务器上。
 
-- **Font**: [Yozai Font (悠哉字体)](https://github.com/lxgw/yozai-font) by [lxgw](https://github.com/lxgw)
+::github{repo="LyraVoid/Mizuki"}
+
+## 联系方式
+
+- **GitHub**：[lickoc](https://github.com/lickoc)
+- **Bilibili**：[Lickoc](https://space.bilibili.com/290824740)
+- **Email**：[lctlz1239@yeah.net](mailto:lctlz1239@yeah.net)
+- **QQ**：1048796996
+
+## 备案信息
+
+- ICP备案号：鄂ICP备2026047104号-1
+- 公安备案号：[鄂公网安备42900402000910号](https://beian.mps.gov.cn/#/query/webSearch?code=42900402000910)

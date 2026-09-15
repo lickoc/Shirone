@@ -32,7 +32,7 @@ permissions:
 # 构建与部署不能并发：多个 job 同时写 /home/ubuntu/blog-dist 会互相覆盖
 concurrency:
   group: blog-deploy
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
@@ -40,6 +40,19 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      - name: Seed theme workspace from local clone
+        # 服务器到 GitHub 带宽很窄，从零克隆主题仓要十几分钟。
+        # 本机已有常驻克隆，先复制 .git，checkout 只需取增量。
+        run: |
+          set -e
+          seed=/home/ubuntu/shirone
+          if [ -d "$seed/.git" ] && [ ! -d .git ]; then
+            cp -a "$seed/.git" .git
+            echo "已从本机克隆预置 .git"
+          else
+            echo "跳过预置（.git 已存在或本机克隆缺失）"
+          fi
+
       - name: Checkout theme repo
         uses: actions/checkout@v4
 
