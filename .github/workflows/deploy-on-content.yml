@@ -12,9 +12,8 @@
 # 为什么用 CONTENT_DIR 而不是 CONTENT_REPO_URL：
 # Shirone 不认 CONTENT_REPO_TOKEN（那是 Mizuki 的做法），私有仓库要么把 token 内嵌进
 # CONTENT_REPO_URL，要么用本地目录。CONTENT_DIR 的优先级高于 CONTENT_REPO_URL，
-# 所以这里用 actions/checkout 把内容仓库取到 ./content，再让同步读取本地目录——
-# 凭证只出现在 checkout 步骤，不会出现在任何 URL 或日志里。
-# 认证用部署密钥 CONTENT_DEPLOY_KEY（单仓库、可只读），而不是个人 PAT。
+# 所以这里先用 git 把内容仓取到 ./content，再让同步读取本地目录——
+# 凭证只用于本机 git，不会出现在任何 URL、日志或 GitHub secret 中。
 name: Build and Deploy
 
 on:
@@ -38,21 +37,30 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: self-hosted
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout theme repo
         uses: actions/checkout@v4
 
       - name: Checkout content repo
-        uses: actions/checkout@v4
-        with:
-          repository: lickoc/Shirone-Content
-          path: content
-          # 用部署密钥而非 PAT：权限仅限这一个仓库，可设为只读，且不随个人令牌过期
-          ssh-key: ${{ secrets.CONTENT_DEPLOY_KEY }}
-          # 不参与 clean，避免影响后续同步建立的映射
-          clean: false
+        # 不用 actions/checkout：内容仓是私有的，而 checkout 需要把凭证（PAT 或部署私钥）
+        # 作为 GitHub secret 交给它。Runner 就跑在本机，服务器 ~/.ssh/id_ed25519 已有
+        # 可读该仓库的部署密钥，直接本地 git 即可——凭证不出服务器、不经过 GitHub、
+        # 也不需要额外维护 secret。失败会显式报错，不会静默降级。
+        env:
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -e
+          export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o BatchMode=yes"
+          if [ -d content/.git ]; then
+            git -C content fetch --prune --depth 1 origin main
+            git -C content reset --hard FETCH_HEAD
+          else
+            rm -rf content
+            git clone --depth 1 git@github.com:lickoc/Shirone-Content.git content
+          fi
+          echo "内容仓版本：$(git -C content log --oneline -1)"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
