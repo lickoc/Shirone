@@ -1,0 +1,146 @@
+# 内容分离的唯一部署入口。
+#
+# 触发来源：
+#   1. 内容仓库 Shirone-Content 推送后发送 repository_dispatch(content-updated)
+#   2. 本仓库 main 推送（主题代码更新）
+#   3. 每日定时兜底
+#   4. 手动触发
+#
+# 为什么用 self-hosted：腾讯云对异常来源 IP 的 SSH 登录有拦截，
+# GitHub 托管 Runner（美国 IP）到不了这台服务器，因此构建与部署都在服务器本机完成。
+#
+# 为什么用 CONTENT_DIR 而不是 CONTENT_REPO_URL：
+# Shirone 不认 CONTENT_REPO_TOKEN（那是 Mizuki 的做法），私有仓库要么把 token 内嵌进
+# CONTENT_REPO_URL，要么用本地目录。CONTENT_DIR 的优先级高于 CONTENT_REPO_URL，
+# 所以这里用 actions/checkout 把内容仓库取到 ./content，再让同步读取本地目录——
+# token 只存在于 checkout 步骤，不会出现在任何 URL 或日志里。
+name: Build and Deploy
+
+on:
+  repository_dispatch:
+    types: [content-updated]
+  push:
+    branches: [main]
+  # 安全网：万一某次 repository_dispatch 没送达，最迟一天内也会用最新内容重建。
+  schedule:
+    - cron: "0 19 * * *" # 每天 03:00 北京时间
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 构建与部署不能并发：多个 job 同时写 /home/ubuntu/blog-dist 会互相覆盖
+concurrency:
+  group: blog-deploy
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout theme repo
+        uses: actions/checkout@v4
+
+      - name: Checkout content repo
+        uses: actions/checkout@v4
+        with:
+          repository: lickoc/Shirone-Content
+          path: content
+          token: ${{ secrets.CONTENT_REPO_TOKEN }}
+          # 不参与 clean，避免影响后续同步建立的映射
+          clean: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        # 首次运行是全新安装；workspace 会被保留，之后依赖未变时很快
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Sync content
+        env:
+          CONTENT_DIR: ./content
+        run: pnpm run content:sync
+
+      - name: Verify content source
+        env:
+          CONTENT_DIR: ./content
+        run: |
+          set -e
+          if [ ! -d content/content/posts ]; then
+            echo "::error::内容未正确取得，构建会使用主题示例内容"
+            exit 1
+          fi
+          echo "内容源文章数：$(find content/content/posts -name '*.md' -o -name '*.mdx' | wc -l)"
+          echo "内容仓库版本：$(git -C content log --oneline -1)"
+          echo "配置覆盖文件：$(ls -1 content/config/*.yaml 2>/dev/null | wc -l) 个"
+
+      - name: Build site
+        env:
+          CONTENT_DIR: ./content
+        run: pnpm run build
+
+      - name: Verify build output
+        run: |
+          set -e
+          test -f dist/index.html || { echo "::error::构建产物缺少 index.html"; exit 1; }
+          # 音乐与备案是关键资产，缺失必须显式失败，不能静默发布残站
+          test -f dist/assets/music/url/dazbee.mp3 || { echo "::error::背景音乐缺失"; exit 1; }
+          test -f dist/beian-icon.png || { echo "::error::备案图标缺失"; exit 1; }
+          grep -q "鄂ICP备2026047104号-1" dist/index.html || { echo "::error::页脚备案号缺失"; exit 1; }
+          echo "产物校验通过：$(du -sh dist | cut -f1)"
+          echo "文章：$(ls -1 dist/posts | wc -l) 篇"
+
+      - name: Backup current site
+        run: |
+          set -e
+          if [ -d /home/ubuntu/blog-dist ]; then
+            rm -rf /home/ubuntu/blog-dist.bak
+            cp -r /home/ubuntu/blog-dist /home/ubuntu/blog-dist.bak
+            echo "已备份到 /home/ubuntu/blog-dist.bak"
+          fi
+
+      - name: Deploy to nginx
+        # Runner 就在服务器上，直接本地替换即可，不需要 SCP 也不需要 sudo
+        run: |
+          set -e
+          rm -rf /home/ubuntu/blog-dist
+          cp -r dist /home/ubuntu/blog-dist
+
+      - name: Reload nginx
+        run: |
+          set -e
+          sudo nginx -t
+          sudo systemctl reload nginx
+          echo "nginx 已重载"
+
+      - name: Verify deployed site
+        run: |
+          set -e
+          test -f /home/ubuntu/blog-dist/index.html || { echo "::error::部署目录缺少 index.html"; exit 1; }
+          curl -fsS http://127.0.0.1/ -o /dev/null && echo "首页可访问"
+          echo "已发布文章："
+          ls -1 /home/ubuntu/blog-dist/posts/
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Build and Deploy"
+            echo ""
+            echo "| 字段 | 值 |"
+            echo "|---|---|"
+            echo "| 触发方式 | \`${{ github.event_name }}\` |"
+            echo "| 提交 | \`${{ github.sha }}\` |"
+            echo "| 内容版本 | \`$(git -C content log --oneline -1 2>/dev/null || echo n/a)\` |"
+            echo "| 部署大小 | \`$(du -sh /home/ubuntu/blog-dist 2>/dev/null | cut -f1 || echo n/a)\` |"
+          } >> $GITHUB_STEP_SUMMARY
