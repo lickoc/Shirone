@@ -1,0 +1,33 @@
+---
+import { getEntry, render } from "astro:content";
+import Card from "@components/atoms/display/Card.svelte";
+import Markdown from "@components/content/Markdown.astro";
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { getMarkdownStylesheetAssets } from "@utils/markdown-assets";
+
+// 隐私政策页：内容取自内容仓 content/spec/privacy.md（映射到 src/content/spec/）。
+// 主题上游只内置了 about 页面，本站另有 /privacy/ 的需求，故新增本页。
+// 页脚「隐私政策」链接指向此路由（见 src/config/FooterConfig.html）。
+const privacyPost = await getEntry("spec", "privacy");
+
+if (!privacyPost) {
+	return Astro.redirect("/404/");
+}
+
+const pageTitle = privacyPost.data.title ?? "隐私政策";
+const pageDescription = privacyPost.data.description ?? pageTitle;
+const { Content, remarkPluginFrontmatter } = await render(privacyPost);
+const markdownStylesheetAssets = await getMarkdownStylesheetAssets(
+	remarkPluginFrontmatter.markdownSyntaxes,
+);
+---
+<MainGridLayout title={pageTitle} description={pageDescription} page="privacy">
+    {markdownStylesheetAssets.map(({ pack, css }) => <style is:inline slot="head" data-swup-optional={pack} set:html={css}></style>)}
+    <div class="flex w-full rounded-[var(--shape-corner-l)] overflow-hidden relative min-h-32">
+        <Card color="var(--card-bg)" radius="l" class="z-10 p-6 lg:p-8 relative w-full">
+            <Markdown class="mt-2">
+                <Content />
+            </Markdown>
+        </Card>
+    </div>
+</MainGridLayout>
