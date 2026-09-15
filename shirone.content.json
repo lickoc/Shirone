@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "type": "path",
+    "path": "/home/ubuntu/shirone-build/content-test"
+  },
+  "prune": true
+}
